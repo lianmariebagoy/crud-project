@@ -1,95 +1,90 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client"
 
-export default function Home() {
+import React, { useEffect, useState } from 'react'
+import axios from 'axios'
+import { useRouter } from 'next/navigation'
+import { UseDataContext } from './context/data'
+
+const Page = () => {
+  const router = useRouter()
+  const { fillData, data, loaded } = UseDataContext()
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newContact, setNewContact] = useState({ name: '', username: '', phone: '' })
+
+  const fetchUser = async () => {
+    const response = await axios('https://jsonplaceholder.typicode.com/users')
+    const { data: responseData } = response
+    fillData(responseData)
+  }
+
+  useEffect(() => {
+    if (!loaded && data.length === 0) {
+      fetchUser()
+    }
+  }, [loaded, data])
+
+  const handleDelete = (id) => {
+    const newArray = data.filter((item) => item.id !== id)
+    fillData(newArray)
+  }
+
+  const handleEdit = (id) => {
+    router.push(`/edit/${id}`)
+  }
+
+  const handleShowAddForm = () => {
+    setShowAddForm(true)
+  }
+
+  const handleHideAddForm = () => {
+    setShowAddForm(false)
+  }
+
+  const handleAddInputChange = (e) => {
+    const { name, value } = e.target
+    setNewContact((prevDetails) => ({ ...prevDetails, [name]: value }))
+  }
+
+  const handleAddSubmit = () => {
+    const newId = data.length ? Math.max(...data.map(item => item.id)) + 1 : 1
+    const newContactWithId = { ...newContact, id: newId }
+    fillData([newContactWithId, ...data])
+    setShowAddForm(false)
+    setNewContact({ name: '', username: '', phone: '' })
+  }
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.js</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div className="container">
+      <button className="add-button" onClick={handleShowAddForm}>Add Contact</button>
+      {showAddForm && (
+        <div className="form-container">
+          <div className="form">
+            <input name='name' onChange={handleAddInputChange} type='text' placeholder='Name' value={newContact.name} />
+            <input name='username' onChange={handleAddInputChange} type='text' placeholder='Username' value={newContact.username} />
+            <input name='phone' onChange={handleAddInputChange} type='text' placeholder='Phone' value={newContact.phone} />
+            <button onClick={handleAddSubmit}>Submit</button>
+            <button onClick={handleHideAddForm}>Cancel</button>
+          </div>
         </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  );
+      )}
+      {data?.length !== 0 && data?.map((item) => {
+        const { name, phone, id } = item
+        return (
+          <div key={id} className="contact-card">
+            <div>
+              <p>{name}</p>
+              <pre>{phone}</pre>
+            </div>
+            <div className="button-group">
+              <button className="edit-button" onClick={() => handleEdit(id)}>Edit</button>
+              <button className="delete-button" onClick={() => handleDelete(id)}>Delete</button>
+            </div>
+          </div>
+        )
+      })}
+      {!data?.length && <p>No data available!</p>}
+    </div>
+  )
 }
+
+export default Page
